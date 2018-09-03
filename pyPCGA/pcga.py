@@ -1535,7 +1535,7 @@ class PCGA:
 
     def forward_model_wrapper(orig_forward_model):
         def wrapped_forward_model(s,par,ncores = None):
-            retVal = orig_forward_model(s,par,ncores = None)
+            retVal = orig_forward_model(s,par,ncores = ncores)
             retVal = np.array(retVal)
             if len(retVal.shape) == 1:
                 retVal = retVal[:,np.newaxis]   #add a second axis
