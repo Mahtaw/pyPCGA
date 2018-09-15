@@ -1535,12 +1535,9 @@ class PCGA:
 
     def forward_model_wrapper(orig_forward_model):
         def wrapped_forward_model(s,par,ncores = None):
-            retVal = orig_forward_model(s,par,ncores = ncores)
+            retVal = orig_forward_model(s,par,ncores = None)
             retVal = np.array(retVal)
-            if len(retVal.shape) == 1:
-                retVal = retVal[:,np.newaxis]   #add a second axis
-            elif len(retVal.shape) != 2:
-                raise TypeError("The value returned by the forward model must be an 2-dimensional array. Instead got a {}-dimensional array.".format(len(retVal.shape)))
+            assert retVal.shape[1] == s.shape[1]
             return retVal
         return wrapped_forward_model
 
