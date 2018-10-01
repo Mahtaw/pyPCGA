@@ -25,9 +25,7 @@ class PCGA:
               
         ##### Forward Model
         # forward solver setting should be done externally as a blackbox
-        #Wrap the forward model in a function that checks that it has the proper signature.
-
-        self.forward_model = PCGA.forward_model_wrapper(forward_model)
+        self.forward_model = forward_model
         
         # Grid points (for Dense, Hmatrix and FMM)
         self.pts = pts # no need for FFT. Will use this later
@@ -39,7 +37,8 @@ class PCGA:
         # inversion setting
         self.m   = np.size(s_init,0) 
         self.s_init = np.array(s_init)
-        self.s_init = self.s_init.reshape((self.s_init.shape[0],1)) #Make sure the array has a second dimension of length 1.
+        self.s_init = self.s_init.reshape(-1,1) #Make sure the array has a second dimension of length 1.
+        
         if s_true is None:
             self.s_true = None
         else:
@@ -280,6 +279,8 @@ class PCGA:
         print("   Prior model                                      : %s" % (getsource(self.kernel)))
         print("   Prior variance                                   : %e" % (self.prior_std ** 2))
         print("   Prior scale (correlation) parameter              : %s" % (self.prior_cov_scale))
+        #print("   Measurement/model error variance                 : %s" % (self.R))
+        #print("   Ratio of prior variance to error variance        : %s" % ((self.prior_std ** 2)/self.R))
         print("   Posterior cov computation                        : %s" % (self.post_cov))
         if self.post_cov:
             if self.post_diag_direct:
@@ -342,6 +343,7 @@ class PCGA:
         start = time()
         if method == 'arpack':
             #from scipy.sparse.linalg import eigsh
+            #debug_here()
             self.priord, self.priorU = eigsh(self.Q, k = n_pc)
             self.priord = self.priord[::-1]
             self.priord = self.priord.reshape(-1,1) # make a column vector
@@ -375,6 +377,9 @@ class PCGA:
         else:
             with HiddenPrints():
                 simul_obs = self.forward_model(s,par)
+        
+        simul_obs = simul_obs.reshape(-1,1)
+
         return simul_obs
 
     def ParallelForwardSolve(self,s):
@@ -397,7 +402,7 @@ class PCGA:
         '''
         nruns = np.size(x,1)
         deltas = np.zeros((nruns,1),'d') 
-
+        
         if delta is None or isnan(delta) or delta == 0:
             for i in range(nruns):
                 mag = np.dot(s.T,x[:,i:i+1])
@@ -451,7 +456,7 @@ class PCGA:
         when obs is not provided (and s_true is), create synthetic observations
         '''
         s_true = self.s_true
-        R = self.R
+        
         #Generate measurements
         if s is None:
             if s_true is None:
@@ -824,7 +829,7 @@ class PCGA:
             elif n_pc == n:
                 [Psi_sigma,Psi_U] = eigsh(DataCovfun, k=n_pc-1, which='LM', maxiter=n)
             else:
-                [Psi_sigma,Psi_U] = eigsh(DataCovfun, k=n, which='LM', maxiter=n_pc)
+                [Psi_sigma,Psi_U] = eigsh(DataCovfun, k=n-1, which='LM', maxiter=n_pc)
             
             #print("eig. val. of sqrt data covariance (%8.2e, %8.2e, %8.2e)" % (Psi_sigma[0], Psi_sigma.min(), Psi_sigma.max()))
 #print(Psi_sigma)
@@ -1085,8 +1090,6 @@ class PCGA:
                     obj = self.ObjectiveFunction(s_hat_all[:,i:i+1], beta_all[:,i:i+1], simul_obs_all[:,i:i+1],approx = True) 
 
             if obj < obj_best: 
-                if self.verbose:
-                    print("%d-th solution obj %e (alpha %f)" % (i,obj,alpha[i]))
                 s_hat = s_hat_all[:,i:i+1]
                 beta = beta_all[:,i:i+1]
                 simul_obs_new = simul_obs_all[:,i:i+1]
@@ -1094,7 +1097,9 @@ class PCGA:
                 self.Q2_cur = Q2_all[:,i:i+1]
                 self.cR_cur = cR_all[:,i:i+1]
                 i_best = i
-
+                if self.verbose:
+                    print('{:d}-th solution obj {} (alpha {}, beta {})'.format(i,obj.reshape(-1),alpha[i],beta.reshape(-1).tolist()))
+                
         if i_best == -1:
             print("no better solution found ..")
             s_hat = s_cur
@@ -1106,6 +1111,9 @@ class PCGA:
             self.HX = HX
             self.R_LM = np.multiply(alpha[i_best],self.R)
 
+        #from scipy.io import savemat
+        #savemat('Q2cR.mat',{'X':self.X,'HZ':HZ,'HX':HX,'b':b,'alpha':alpha,'i_best':i_best,'R':self.R,'pts':self.pts,'Z':Z})
+        
         self.i_best = i_best # keep track of best LM solution
         return s_hat, beta, simul_obs_new
 
@@ -1292,7 +1300,7 @@ class PCGA:
         #return s_cur, beta_cur, simul_obs, iter_cur
         print("------------ Inversion Summary ---------------------------")
         print("** Found solution at iteration %d" %(self.iter_best))
-        print("** Solution RMSE %g , initial RMSE %g, where RMSE = (norm(obs. diff.)/sqrt(nobs)), Solution nRMSE %g, init. nRMSE %g" %(np.linalg.norm(self.simul_obs_best-self.obs)/np.sqrt(self.n),RMSE_init, np.linalg.norm( np.divide(self.simul_obs_best-self.obs,self.sqrtR) )/np.sqrt(n)
+        print("** Solution obs. RMSE %g , initial obs. RMSE %g, where RMSE = (norm(obs. diff.)/sqrt(nobs)), Solution obs. nRMSE %g, init. obs. nRMSE %g" %(np.linalg.norm(self.simul_obs_best-self.obs)/np.sqrt(self.n),RMSE_init, np.linalg.norm( np.divide(self.simul_obs_best-self.obs,self.sqrtR) )/np.sqrt(n)
         , nRMSE_init))
         print("** Final objective function value is %e" %(self.obj_best))
         print("** Final predictive model checking Q2, cR is %e, %e" %(self.Q2_best, self.cR_best))
@@ -1315,6 +1323,33 @@ class PCGA:
             return s_hat, simul_obs, post_diagv, iter_best
         else:
             return s_hat, simul_obs, iter_best
+
+    def ComputeModelValidationDirect(self,PSI,HX):
+        """
+        evaluate Q2/cR criteria directly [Kitanids, MG 1991]
+        
+        """
+        
+        from scipy.linalg import orth
+        
+        u, s, vh = np.linalg.svd(A)
+        tol = 1e-14
+        nnz = (s >= tol).sum()
+        T = vh[nnz:].conj().T
+        Pyy = np.dot(np.dot(T.T,np.linalg.solve(np.dot(T,np.dot(PSI,T.T)))),T) # projector space of null(HX)  
+        P = orth(Pyy) # ornormalize Pyy 
+        y = self.obs[:] - simul_obs + Hs[:]
+        delta = P*y
+        var_delta = np.diag(np.dot(P,np.dot(PSI,P.T))) # always diagonal
+        epsilon = np.divide(delta,sqrt(var_delta)) # orthonomal residual
+        Pyy1 = np.dot(T.T,np.dot(np.linalg.solve(np.dot(T,np.dot(PSI,T.T)),T),PSI)) # generalized inverse
+        P2 = orth(Pyy1).T
+        Q2 = 0.
+        cR = 0.
+
+        #return Q2,cR
+        raise NotImplementedError
+
 
     def ComputePosteriorDiagonalEntriesDirect(self,HZ,HX,i_best,R):
         """
@@ -1356,6 +1391,18 @@ class PCGA:
         A[0:n,0:n] = np.copy(Psi)   
         A[0:n,n:n+p] = np.copy(HX)   
         A[n:n+p,0:n] = np.copy(HX.T)
+        
+        #HQX = np.vstack((HQ,self.X.T))
+        #diagred = np.diag(np.dot(HQX.T, np.linalg.solve(A, HQX)))
+        # diagred1 = np.diag(np.dot(HQ.T, np.linalg.solve(Psi, HQ)))
+        # HQX1 = np.vstack((HQ,self.X[:,0].T))
+        # A1 = np.zeros((n+1,n+1),dtype='d')
+        #A1[0:n,0:n] = np.copy(Psi)   
+        #A1[0:n,n:n+1] = np.copy(HX[:,0:1])   
+        #A1[n:n+1,0:n] = np.copy(HX[:,0:1].T)
+        
+        # diagred2 = np.diag(np.dot(HQX1.T, np.linalg.solve(A1, HQX1)))
+        #v1 = priorvar - diagred
 
         for i in range(m):
             b = np.zeros((n+p,1),dtype='d')
@@ -1363,11 +1410,11 @@ class PCGA:
             b[n:n+p] = self.X[i:i+1,:].T
             tmp = np.dot(b.T, np.linalg.solve(A, b))
             v[i] = priorvar - tmp
+            #if v[i] <= 0:
+            #    print("%d-th element negative" % (i))
             if i % 1000 == 0:
                 print("%d-th element evaluated" % (i))
-
-        v[v > priorvar] = priorvar
-
+        
         #print("compute variance: %f sec" % (time() - start))
         return v
 
@@ -1532,15 +1579,6 @@ class PCGA:
         print("Time for uncertainty computation is", time() - start)
 
         raise NotImplementedError
-
-    def forward_model_wrapper(orig_forward_model):
-        def wrapped_forward_model(s,par,ncores = None):
-            retVal = orig_forward_model(s,par,ncores = ncores)
-            retVal = np.array(retVal)
-            assert retVal.shape[1] == s.shape[1]
-            return retVal
-        return wrapped_forward_model
-
 
     #def __str__(self):
     #    """simply return the name when the PCGA object is printed"""
