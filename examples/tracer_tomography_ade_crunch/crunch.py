@@ -9,6 +9,7 @@ import subprocess
 #from subprocess import call
 from time import time
 from IPython.core.debugger import Tracer; debug_here = Tracer()
+from pyCrunch import CrunchRun
 
 '''
 three operations
@@ -18,7 +19,7 @@ three operations
 '''
 
 class Model:
-    def __init__(self,params = None):
+    def __init__(self,params = None, libraryPath = './CrunchTope'):
         self.idx = 0
         self.homedir = os.path.abspath('./')
         self.inputdir = os.path.abspath(os.path.join(self.homedir,"./input_files"))
@@ -26,6 +27,7 @@ class Model:
         self.outputdir = None
         self.parallel = False
         self.record_cobs = False
+        self.libraryPath = libraryPath
 
         from psutil import cpu_count  # physcial cpu counts
         self.ncores = cpu_count(logical=False)
@@ -103,7 +105,6 @@ class Model:
     def run_model(self,s,idx=0):
 
         sim_dir = self.create_dir(idx)
-        os.chdir(sim_dir)
         
         nx, ny = self.nx, self.ny
         m = nx*ny
@@ -128,7 +129,9 @@ class Model:
         perm2dx[-1,:] = perm2dx[-2,:]
         np.savetxt("PermField.y",perm2dy.reshape((ny+2)*nx,),fmt='%10.4E')
         
-        subprocess.call(["./CrunchTope","2DCr.in"], stdout=subprocess.PIPE)
+        #subprocess.call([self.libraryPath,"2DCr.in"], stdout=subprocess.PIPE)
+        crunch = CrunchRun(sim_dir, "2DCr.in", sim_dir, "/Users/mahtag2/Desktop/CrunchTope/libs" )
+        crunch.run()
 
         # read results
         simul_cobs = np.zeros((m,nt),'d')

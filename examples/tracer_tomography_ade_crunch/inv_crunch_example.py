@@ -33,7 +33,7 @@ if __name__ == '__main__':  # for windows application
     # prepare interface to run as a function
     def forward_model(s, parallelization, ncores=None):
         params = {'nx':nx,'ny':ny,'t':t}
-        model = crunch.Model(params)
+        model = crunch.Model(params, libraryPath ='/Users/mahtag2/Desktop/CrunchTope/libs/CrunchTope-Mac')
 
         if parallelization:
             simul_obs = model.run(s, parallelization, ncores)
