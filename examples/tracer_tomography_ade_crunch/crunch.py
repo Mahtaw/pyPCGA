@@ -105,6 +105,7 @@ class Model:
     def run_model(self,s,idx=0):
 
         sim_dir = self.create_dir(idx)
+        os.chdir(sim_dir)
         
         nx, ny = self.nx, self.ny
         m = nx*ny
