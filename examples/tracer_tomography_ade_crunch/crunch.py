@@ -126,8 +126,6 @@ class Model:
         
         perm2dy = np.zeros((ny+2,nx),'d')
         perm2dy[1:-1,:] = perm2d
-        perm2dx[0,:] = perm2dx[1,:]
-        perm2dx[-1,:] = perm2dx[-2,:]
         np.savetxt("PermField.y",perm2dy.reshape((ny+2)*nx,),fmt='%10.4E')
         
         #subprocess.call([self.libraryPath,"2DCr.in"], stdout=subprocess.PIPE)
