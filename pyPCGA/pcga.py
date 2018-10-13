@@ -436,9 +436,9 @@ class PCGA:
         else:
             for i in range(nruns):
                 if i == 0:
-                    simul_obs_purturbation = self.ForwardSolve(x)
+                    simul_obs_purturbation = self.ForwardSolve(x[:,i:i+1])
                 else:
-                    simul_obs_purturbation = np.concatenate((simul_obs_purturbation, self.ForwardSolve(x)), axis=1)
+                    simul_obs_purturbation = np.concatenate((simul_obs_purturbation, self.ForwardSolve(x[:,i:i+1])), axis=1)
         
         if np.size(simul_obs_purturbation,1) != nruns:
             raise ValueError("size of simul_obs_purturbation (%d,%d) is not nruns %d" % (simul_obs_purturbation.shape[0], simul_obs_purturbation.shape[1], nruns))
@@ -1035,7 +1035,8 @@ class PCGA:
                     tmp_cR[strtidx:strtidx+lenRi] = alpha[iR]*uniqueR[iR]
                     strtidx = strtidx+lenRi
                 tmp_cR[strtidx:] = alpha[iR]*uniqueR[iR]
-                
+            
+            tmp_cR[tmp_cR <= 0] = 1.e-16 # temporary fix for zero tmp_cR
             cR_all[:,i:i+1] = Q2_all[:,i:i+1]*np.exp(np.log(tmp_cR).sum()/(n-p))
 
         # evaluate solutions
