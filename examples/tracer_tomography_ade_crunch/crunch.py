@@ -200,38 +200,6 @@ if __name__ == '__main__':
     mymodel = crunch.Model(params)
     print('(1) single run')
 
-    from time import time
     stime = time()
     simul_obs = mymodel.run(s,par)
     print('simulation run: %f sec' % (time() - stime))
-    
-    #obs = simul_obs + 0.01*np.random.randn(m,1)
-    #obs[obs < 0] = 0
-    #np.savetxt('obs.txt',obs)
-    #np.savetxt('cobs.txt',mymodel.simul_cobs)
-    #mymodel.simul_cobs = mymodel.simul_cobs
-    #for it in range(nx*ny):        
-    #    simul_obs[it] = np.trapz(t*mymodel.simul_cobs[it,:],x=t)/np.trapz(mymodel.simul_cobs[it,:],x=t)
-
-    #savemat('simul.mat',{'simul_obs':simul_obs})    
-    
-    #import sys
-    #sys.exit(0)
-
-    ncores = 2
-    nrelzs = 2
-    
-    print('(2) parallel run with ncores = %d' % ncores)
-    par = True # parallelization false
-    srelz = np.zeros((np.size(s,0),nrelzs),'d')
-    for i in range(nrelzs):
-        srelz[:,i:i+1] = s + 0.1*np.random.randn(np.size(s,0),1)
-    
-    simul_obs_all = mymodel.run(srelz,par,ncores = ncores)
-
-    print(simul_obs_all)
-
-    # use all the physcal cores if not specify ncores
-    #print('(3) parallel run with all the physical cores')
-    #simul_obs_all = mymodel.run(srelz,par)
-    #print(simul_obs_all)
