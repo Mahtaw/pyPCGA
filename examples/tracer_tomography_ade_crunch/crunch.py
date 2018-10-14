@@ -121,7 +121,8 @@ class Model:
         perm2dx[:,0] = perm2dx[:,1] #Set ghost cells on either edge of the array to match the adjacent cells
         perm2dx[:,-1] = perm2dx[:,-2]
         
-        np.savetxt("PermField.x",perm2dx.reshape(ny*(nx+2),),fmt='%10.4E')
+        perm1d = perm2dx.ravel()#perm2dx.reshape(ny*(nx+2),)
+        np.savetxt("PermField.x",perm1d,fmt='%10.4E')
         
         
         perm2dy = np.zeros((ny+2,nx),'d')
