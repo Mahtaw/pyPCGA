@@ -117,15 +117,15 @@ class Model:
 
         # perm.x
         perm2dx = np.zeros((ny,nx+2),'d')
-        perm2dx[:,1:-1] = perm2d
-        perm2dx[:,0] = perm2dx[:,1]
+        perm2dx[:,1:-1] = perm2d    #copy permeability array to center of new array
+        perm2dx[:,0] = perm2dx[:,1] #Set ghost cells on either edge of the array to match the adjacent cells
         perm2dx[:,-1] = perm2dx[:,-2]
         
         np.savetxt("PermField.x",perm2dx.reshape(ny*(nx+2),),fmt='%10.4E')
         
         
         perm2dy = np.zeros((ny+2,nx),'d')
-        perm2dy[1:-1,:] = perm2d
+        perm2dy[1:-1,:] = perm2d    #Copy the array to the new array and allow the ghost cells to remain as zeros.
         np.savetxt("PermField.y",perm2dy.reshape((ny+2)*nx,),fmt='%10.4E')
         
         #subprocess.call([self.libraryPath,"2DCr.in"], stdout=subprocess.PIPE)
