@@ -118,7 +118,8 @@ class Model:
         nt = t.shape[0]
 
         
-        perm2d = np.exp(s).reshape(nz,ny,nx)
+        perm2d = np.exp(s).reshape(ny,nx)
+        perm2d = np.repeat(perm2d[np.newaxis,:,:], nz, axis=0)
 
         # perm.x
         perm2dx = np.zeros((nz,ny,nx+2),'d')
@@ -137,8 +138,8 @@ class Model:
         # perm.z
         perm2dz = np.zeros((nz+2,ny,nx),'d')
         perm2dz[1:-1,:,:] = perm2d    #copy permeability array to center of new array
-        perm2dz[0,:,:] = perm2dx[1,:,:] #Set ghost cells on either edge of the array to match the adjacent cells
-        perm2dz[-1,:,:] = perm2dx[-2:,:]
+        perm2dz[0,:,:] = perm2dz[1,:,:] #Set ghost cells on either edge of the array to match the adjacent cells
+        perm2dz[-1,:,:] = perm2dz[-2,:,:]
         
         perm1dz = perm2dz.ravel()
         np.savetxt("PermField.z",perm1dz,fmt='%10.4E')
@@ -199,13 +200,11 @@ if __name__ == '__main__':
     s = s.reshape(-1, 1)
     nx = 50
     ny = 50
-    m = nx*ny
+    nz = 50
     t = np.array([1.1574E-05, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,\
      0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0])
-    params = {'nx':nx,'ny':ny, 't': t, 'deletedir':False, 'record_cobs':True}
+    params = {'nx':nx,'ny':ny, 'nz':nz, 't': t, 'deletedir':False, 'record_cobs':True}
 
-    #s = -30.*np.ones((nx*ny,1),'d')
-    #s = s.reshape(-1, 1)
     par = False # parallelization false
 
 
