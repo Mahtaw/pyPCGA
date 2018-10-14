@@ -56,6 +56,11 @@ class Model:
                 self.ny = params['ny']
             else:
                 raise NameError('ny is not defined')
+                            
+            if 'nz' in params:
+                self.nz = params['nz']
+            else:
+                raise NameError('nz is not defined')
             
             if 't' in params:
                 self.t = params['t']
@@ -107,27 +112,36 @@ class Model:
         sim_dir = self.create_dir(idx)
         os.chdir(sim_dir)
         
-        nx, ny = self.nx, self.ny
-        m = nx*ny
+        nx, ny, nz = self.nx, self.ny, self.nz
+        m = nx*ny*nz
         t = self.t
         nt = t.shape[0]
 
         
-        perm2d = np.exp(s).reshape(ny,nx)
+        perm2d = np.exp(s).reshape(nz,ny,nx)
 
         # perm.x
-        perm2dx = np.zeros((ny,nx+2),'d')
-        perm2dx[:,1:-1] = perm2d    #copy permeability array to center of new array
-        perm2dx[:,0] = perm2dx[:,1] #Set ghost cells on either edge of the array to match the adjacent cells
-        perm2dx[:,-1] = perm2dx[:,-2]
+        perm2dx = np.zeros((nz,ny,nx+2),'d')
+        perm2dx[:,:,1:-1] = perm2d    #copy permeability array to center of new array. Leave the ghost cells as zero.
         
-        perm1d = perm2dx.ravel()
-        np.savetxt("PermField.x",perm1d,fmt='%10.4E')
+        perm1dx = perm2dx.ravel()
+        np.savetxt("PermField.x",perm1dx,fmt='%10.4E')
         
+        # perm.y
+        perm2dy = np.zeros((nz,ny+2,nx),'d')
+        perm2dy[:,1:-1,:] = perm2d    #Copy the array to the new array and allow the ghost cells to remain as zeros.
         
-        perm2dy = np.zeros((ny+2,nx),'d')
-        perm2dy[1:-1,:] = perm2d    #Copy the array to the new array and allow the ghost cells to remain as zeros.
-        np.savetxt("PermField.y",perm2dy.reshape((ny+2)*nx,),fmt='%10.4E')
+        perm1dy = perm2dy.ravel()
+        np.savetxt("PermField.y",perm1dy,fmt='%10.4E')
+        
+        # perm.z
+        perm2dz = np.zeros((nz+2,ny,nx),'d')
+        perm2dz[1:-1,:,:] = perm2d    #copy permeability array to center of new array
+        perm2dz[0,:,:] = perm2dx[1,:,:] #Set ghost cells on either edge of the array to match the adjacent cells
+        perm2dz[-1,:,:] = perm2dx[-2:,:]
+        
+        perm1dz = perm2dz.ravel()
+        np.savetxt("PermField.z",perm1dz,fmt='%10.4E')
         
         #subprocess.call([self.libraryPath,"2DCr.in"], stdout=subprocess.PIPE)
         crunch = CrunchRun(sim_dir, "2DCr.in", sim_dir, "/Users/mahtag2/Desktop/CrunchTope/libs" )
@@ -171,9 +185,6 @@ class Model:
                 simul_obs.append(self(item))
 
         return np.array(simul_obs).T
-
-        #pool.close()
-        #pool.join()
 
     def __call__(self,args):
         return self.run_model(args[0],args[1])
