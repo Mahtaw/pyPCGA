@@ -25,9 +25,9 @@ if __name__ == '__main__':  # for windows application
     prior_cov_scale = np.array([2.0,2.0])
 
     def kernel(r): return (prior_std ** 2) * np.exp(-r)
-'''measurements were generated as
-obs = simul_obs + 0.01*np.random.randn(m,1)  # error std = 0.01 day
-obs[obs < 0.] = 0.'''
+    '''measurements were generated as
+    obs = simul_obs + 0.01*np.random.randn(m,1)  # error std = 0.01 day
+    obs[obs < 0.] = 0.'''
 
     # forward model wrapper for pyPCGA
     s_true = np.loadtxt('true.txt')
